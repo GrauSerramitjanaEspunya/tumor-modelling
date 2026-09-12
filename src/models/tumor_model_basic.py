@@ -1,8 +1,9 @@
 import numpy as np
+import pandas as pd
 
-def simulate_tumor_basic(T0: float, r: float, K: float, al: float, times: np.ndarray, D_values: np.ndarray) -> np.ndarray:
+def simulate_tumor_basic(T0: float, r: float, K: float, al: float, times: np.ndarray, D_values: np.ndarray) -> pd.DataFrame:
     """
-    Tumor volume simulator for non-uniform timesteps
+    Tumor volume simulator for non-uniform timesteps.
 
     Input:
     ----------
@@ -15,7 +16,9 @@ def simulate_tumor_basic(T0: float, r: float, K: float, al: float, times: np.nda
 
     Output:
     ----------
-    T_pred   : Array of predicted volumes for the same timesteps
+    Pandas DataFrame with two columns:
+        "DAYS"
+        "VOL" : total predicted volume
     """
     T_pred = np.zeros(len(times))
     T_pred[0] = T0
@@ -27,6 +30,8 @@ def simulate_tumor_basic(T0: float, r: float, K: float, al: float, times: np.nda
         growth = r * T_current * (1 - T_current/K)
         drug_effect = al * D_values[i-1] * T_current
 
-        T_pred[i] = T_current + (growth - drug_effect)*dt
+        T_pred[i] = max(0, T_current + (growth - drug_effect)*dt) # To prevent negative volumes
 
-    return T_pred
+    return pd.DataFrame({
+        "DAYS": times,
+        "VOL": T_pred})
