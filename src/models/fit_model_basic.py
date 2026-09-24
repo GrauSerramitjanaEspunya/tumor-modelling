@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from tumor_model_basic import simulate_tumor_basic
+from .tumor_model_basic import simulate_tumor_basic
 from scipy.optimize import differential_evolution
 
 
@@ -11,13 +11,13 @@ def loss_function(T_obs: np.ndarray, T_pred: np.ndarray) -> float:
     return float(np.mean((T_obs - T_pred) ** 2))
 
 
-def fit_model(T_obs: np.ndarray, D_values: np.ndarray, times: np.ndarray) -> pd.DataFrame:
+def fit_model_basic(T_obs: np.ndarray, D_values: np.ndarray, times: np.ndarray, seed: int, maxiter: int, popsize: int) -> pd.DataFrame:
     """
     Fits a model accross 5 mice (1 control + 4 treated), sharing r (growth rate) and K (carrying capacity)
     """
     bounds = [
         (0.0, 2.0),  # r (shared)
-        (5.0, 7.6),  # K (shared)
+        (8.0, 10.0),  # K (shared)
         (0.0, 0.05), # al_1
         (0.0, 0.05), # al_2
         (0.0, 0.05), # al_3
@@ -57,15 +57,19 @@ def fit_model(T_obs: np.ndarray, D_values: np.ndarray, times: np.ndarray) -> pd.
 
         return total_loss / num_mice
     
-    result = differential_evolution(objective, bounds, seed=23)
+    result = differential_evolution(objective, 
+                                    bounds, 
+                                    seed=seed,
+                                    maxiter=maxiter,
+                                    popsize=popsize)
 
     opt_params = result.x
     df_results = pd.DataFrame({
-        "ID": [i for i in range(len(T_obs))],
-        "r": [opt_params[0] for _ in range(len(T_obs))],
-        "K": [opt_params[1] for _ in range(len(T_obs))],
+        "ID": [i for i in range(5)],
+        "r": [opt_params[0] for _ in range(5)],
+        "K": [opt_params[1] for _ in range(5)],
         "al": [0.0, opt_params[2], opt_params[3], opt_params[4], opt_params[5]],
-        "MSE": [result.fun for _ in range(len(T_obs))]
+        "MSE": [result.fun for _ in range(5)]
     })
 
     return df_results
