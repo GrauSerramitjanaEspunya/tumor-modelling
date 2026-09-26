@@ -13,7 +13,6 @@ def rtv(df: pd.DataFrame) -> pd.DataFrame:
 def process_dataset(input_filepath: str, output_filepath: str) -> None:
     """
     Preprocesses the file located at 'input_filepath' and exports the dataset as a .csv to 'output_filepath'.
-    If the dataset treats the mice with CDKi+Gemcitabine (dose=T) it adds the information about the dose to the dataset.
     """
     input_path = Path(input_filepath)
     output_path = Path(output_filepath)

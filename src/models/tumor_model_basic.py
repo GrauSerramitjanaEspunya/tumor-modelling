@@ -1,26 +1,25 @@
 import numpy as np
 import pandas as pd
 
-def simulate_tumor_basic(T0: float, r: float, K: float, al: float, times: np.ndarray, D_values: np.ndarray) -> pd.DataFrame:
+def simulate_tumor_basic(T0: float, r: float, K: float, al: float, times: np.ndarray, D: bool) -> pd.DataFrame:
     """
-    Tumor volume simulator.
+    Discrete-time tumor volume simulator. It only stores the predicted volume for observed days.
 
     Input:
     ----------
-    T0       : Initial volume (in mm^3)
+    T0       : Initial tumor volume (in mm^3)
     r        : Tumor growth rate
-    K        : Total carrying capacity
+    K        : Total carrying capacity (in mm^3)
     al       : Drug efficiency (= 0 if no treatment)
     times    : Array of observation days
-    D_values : Array of treatment intensity (dose)
+    D        : Bool variable indicating presence/absence of treatment 
 
     Output:
     ----------
     Pandas DataFrame with two columns:
-        "DAYS"
-        "VOL" : total predicted volume
+        "Day"
+        "Size" : total predicted tumor size (in mm^3)
     """
-    dose_lookup = dict(zip(times, D_values))
     max_day = int(times[-1])
     sample_days = set(times)
 
@@ -30,13 +29,12 @@ def simulate_tumor_basic(T0: float, r: float, K: float, al: float, times: np.nda
     for i in range(max_day + 1):
         if i in sample_days:
             T_pred.append(T_current)
-            D_current = dose_lookup[i]
 
         growth = r * T_current * (1 - T_current/K)
-        drug_effect = al * D_current * T_current
+        drug_effect = al * D * T_current
 
         T_current = max(0, T_current + (growth - drug_effect) * 1.0) # To prevent negative volumes
 
     return pd.DataFrame({
-        "DAYS": times,
-        "VOL": T_pred})
+        "Day": times,
+        "Size": T_pred})

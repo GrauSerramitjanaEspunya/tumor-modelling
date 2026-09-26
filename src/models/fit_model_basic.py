@@ -6,54 +6,64 @@ from scipy.optimize import differential_evolution
 
 def loss_function(T_obs: np.ndarray, T_pred: np.ndarray) -> float:
     """
-    Returns the MSE between the observed log volume and the predicted log volume of the tumor.
+    Returns the MSE between the observed log RTV and the predicted log RTV of the tumor.
     """
-    return float(np.mean((T_obs - T_pred) ** 2))
+    return float(np.mean((np.log(T_obs) - np.log(T_pred)) ** 2))
 
 
-def fit_model_basic(T_obs: np.ndarray, D_values: np.ndarray, times: np.ndarray, seed: int, maxiter: int, popsize: int) -> pd.DataFrame:
+def fit_model_basic(data: pd.DataFrame, seed: int, maxiter: int, popsize: int) -> pd.DataFrame:
     """
-    Fits a model accross 5 mice (1 control + 4 treated), sharing r (growth rate) and K (carrying capacity)
+    Fits the basic tumor volume simulator model through differential evolution using the entire dataset.
+
+    Output:
+    ----------
+    Pandas DataFrame with four columns: 
+        "Group" : group identificator
+        "r"     : estimated growth rate (shared accross groups)
+        "K"     : estimated Carrying capacity (shared accross groups)
+        "al"    : estimated cellular death rate per group
+        "MSE"   : final MSE obtained
     """
     bounds = [
-        (0.0, 2.0),  # r (shared)
-        (8.0, 10.0),  # K (shared)
-        (0.0, 0.05), # al_1
-        (0.0, 0.05), # al_2
-        (0.0, 0.05), # al_3
-        (0.0, 0.05)  # al_4
+        (0.05, 0.8),      # r (shared)
+        (4000.0, 7500.0), # K (shared)
+        (0.0, 2.0),       # al_1
+        (0.0, 2.0),       # al_2
+        (0.0, 2.0)        # al_3
     ]
 
-    T_obs.reshape(5, 11) # each line represents a mouse, each column a day
-    D_values.reshape(5, 11)
+    mice_ids = data["ID"].unique()
 
     def objective(params: np.ndarray) -> float:
         """
         Objective function. Runs the simulation for all mice and reports the join MSE.
         """
         r, K = params[0], params[1]
-        alphas = [0.0, params[2], params[3], params[4], params[5]]
+        alphas = [0.0, params[2], params[3], params[4]]
 
-        num_mice = len(T_obs)
         total_loss = 0.
+        num_mice = data["ID"].nunique()
 
-        for i in range(num_mice):
-            try:
-                T0_i = T_obs[i, 0]
-                sim_df = simulate_tumor_basic(
-                    T0_i,
-                    r,
-                    K,
-                    alphas[i],
-                    times,
-                    D_values[i]
-                )
+        for id in mice_ids:
+            T_obs = data.loc[data["ID"] == id, "Size"].to_numpy()
+            times = data.loc[data["ID"] == id, "Day"].to_numpy()
+            T0 = T_obs[0]
 
-                T_pred = sim_df["VOL"].values()
+            grp = data.loc[data["ID"] == id, "Group"].iloc[0]
+            D = grp > 1
 
-                total_loss += loss_function(T_obs[i], T_pred)
-            except:
-                return 1e6
+            sim_df = simulate_tumor_basic(
+                T0,
+                r,
+                K,
+                alphas[grp-1],
+                times,
+                D
+            )
+
+            T_pred = sim_df["Size"].to_numpy()
+
+            total_loss += loss_function(T_obs, T_pred)
 
         return total_loss / num_mice
     
@@ -65,11 +75,11 @@ def fit_model_basic(T_obs: np.ndarray, D_values: np.ndarray, times: np.ndarray, 
 
     opt_params = result.x
     df_results = pd.DataFrame({
-        "ID": [i for i in range(5)],
-        "r": [opt_params[0] for _ in range(5)],
-        "K": [opt_params[1] for _ in range(5)],
-        "al": [0.0, opt_params[2], opt_params[3], opt_params[4], opt_params[5]],
-        "MSE": [result.fun for _ in range(5)]
+        "Group": [1, 2, 3, 4],
+        "r": opt_params[0],
+        "K": opt_params[1],
+        "al": [0.0, opt_params[2], opt_params[3], opt_params[4]],
+        "MSE": result.fun
     })
 
     return df_results
