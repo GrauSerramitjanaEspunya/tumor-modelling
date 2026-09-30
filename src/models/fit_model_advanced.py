@@ -29,7 +29,7 @@ def fit_model_advanced(data: pd.DataFrame, seed: int, maxiter: int, popsize: int
     bounds = [
         (0.05, 0.8),      # r_s (shared)
         (0.01, 0.6),      # r_r (shared)
-        (4000.0, 7500.0), # K (shared)
+        (3000.0, 7500.0), # K (shared)
         (0.0, 2.0),       # al_1
         (0.0, 2.0),       # al_2
         (0.0, 2.0),       # al_3
