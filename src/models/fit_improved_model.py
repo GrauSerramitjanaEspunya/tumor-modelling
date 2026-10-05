@@ -71,7 +71,7 @@ def fit_model(data: pd.DataFrame, seed: int, maxiter: int, popsize: int, max_day
             grp = mouse_df["Group"].iloc[0]
             al = alphas[grp]
 
-            # Compute loss -> optimize r_i and compute MSE + prior loss
+            # To compute loss -> optimize r_i and compute MSE + prior loss
             res_mouse = minimize(
                 fun=lambda r: loss_function(mouse_df, r[0], bar_r, sigma_r, K, al),
                 x0=[bar_r],
